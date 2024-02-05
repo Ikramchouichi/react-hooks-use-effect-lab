@@ -1,41 +1,49 @@
-import React, { useState } from "react";
-import Question from "./Question";
-import quiz from "../data/quiz";
+import React, { useEffect, useState } from 'react';
 
-function App() {
-  const [questions, setQuestions] = useState(quiz);
-  const [currentQuestionId, setCurrentQuestion] = useState(1);
-  const [score, setScore] = useState(0);
-  const currentQuestion = questions.find((q) => q.id === currentQuestionId);
+function Question({ question, onAnswered }) {
+  const [timeRemaining, setTimeRemaining] = useState(10);
 
-  function handleQuestionAnswered(correct) {
-    if (currentQuestionId < questions.length) {
-      setCurrentQuestion((currentQuestionId) => currentQuestionId + 1);
+  useEffect(() => {
+    // Set up the timer only if timeRemaining is above 0.
+    if (timeRemaining > 0) {
+      const timer = setTimeout(() => {
+        setTimeRemaining(timeRemaining - 1);
+      }, 1000);
+      // Cleanup function to clear the timer.
+      return () => clearTimeout(timer);
     } else {
-      setCurrentQuestion(null);
+      // When timeRemaining hits 0, call onAnswered with false.
+      onAnswered(false);
+      // Reset timeRemaining for the next question.
+      setTimeRemaining(10);
     }
-    if (correct) {
-      setScore((score) => score + 1);
-    }
+  }, [timeRemaining, onAnswered]); // Depend on timeRemaining and onAnswered to re-run the effect.
+
+  // Handler for when a user selects an answer.
+  function handleAnswer(isCorrect) {
+    // Clear the current timer and reset timeRemaining for the next question.
+    setTimeRemaining(10);
+    // Notify App component about the answer.
+    onAnswered(isCorrect);
   }
 
+  const { id, prompt, answers, correctIndex } = question;
+
   return (
-    <main>
-      <section>
-        {currentQuestion ? (
-          <Question
-            question={currentQuestion}
-            onAnswered={handleQuestionAnswered}
-          />
-        ) : (
-          <>
-            <h1>Game Over</h1>
-            <h2>Total Correct: {score}</h2>
-          </>
-        )}
-      </section>
-    </main>
+    <>
+      <h1>Question {id}</h1>
+      <h3>{prompt}</h3>
+      {answers.map((answer, index) => {
+        const isCorrect = index === correctIndex;
+        return (
+          <button key={answer} onClick={() => handleAnswer(isCorrect)}>
+            {answer}
+          </button>
+        );
+      })}
+      <h5>{timeRemaining} seconds remaining</h5>
+    </>
   );
 }
 
-export default App;
+export default Question;
